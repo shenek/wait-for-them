@@ -1,0 +1,25 @@
+[package]
+name = "wait-for-them"
+version = "0.1.0"
+authors = ["Stepan Henek <stepan@henek.name>"]
+edition = "2018"
+description = "Waits for TCP ports to be opened"
+license = "GPL-3.0"
+readme = "README.md"
+keywords = ["cli", "wait"]
+repository = "https://github.com/shenek/wait-for-them"
+categories = ["command-line-utilities"]
+
+[features]
+default = []
+
+[dependencies]
+async-std = {version="1.5", features=["attributes"]}
+futures = "0.3"
+
+[dev-dependencies]
+assert_cmd = "~0.12"
+
+[[bin]]
+name = "wait-for-them"
+path = "src/main.rs"
