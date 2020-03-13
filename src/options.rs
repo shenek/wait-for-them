@@ -3,7 +3,7 @@ pub struct Options {
     pub timeout: Option<u64>,
 }
 
-pub fn parse_options(args: Vec<String>) -> Result<Options, ()> {
+pub fn parse_options(args: Vec<String>) -> Result<Options, Option<String>> {
     let mut options = Options {
         hosts: vec![],
         timeout: None,
@@ -11,7 +11,10 @@ pub fn parse_options(args: Vec<String>) -> Result<Options, ()> {
     let mut read_timeout: bool = false;
     for arg in args {
         if read_timeout {
-            options.timeout = Some(arg.parse().map_err(|_| ())?);
+            options.timeout = Some(
+                arg.parse()
+                    .map_err(|_| Some("Failed to parse timeout".to_string()))?,
+            );
             read_timeout = false;
             continue;
         }
@@ -21,5 +24,11 @@ pub fn parse_options(args: Vec<String>) -> Result<Options, ()> {
         }
         options.hosts.push(arg);
     }
-    Ok(options)
+    if options.hosts.is_empty() {
+        Err(Some(
+            "You need to set at least one host and port".to_string(),
+        ))
+    } else {
+        Ok(options)
+    }
 }
