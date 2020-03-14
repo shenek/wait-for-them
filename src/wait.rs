@@ -1,6 +1,7 @@
-use async_std::future;
-use async_std::net::TcpStream;
-use std::{thread, time::Duration};
+use async_std::{future, net::TcpStream, task::sleep};
+use std::time::Duration;
+
+const RETRY_TIMEOUT: u64 = 100u64;
 
 pub struct Wait {
     address: String,
@@ -14,7 +15,7 @@ impl Wait {
 
     async fn wait_for_connection(&self) {
         while TcpStream::connect(&self.address).await.is_err() {
-            thread::sleep(Duration::from_millis(100));
+            sleep(Duration::from_millis(RETRY_TIMEOUT)).await;
         }
     }
 
