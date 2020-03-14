@@ -14,7 +14,7 @@ categories = ["command-line-utilities"]
 default = []
 
 [dependencies]
-async-std = {version="1.5", features=["attributes"]}
+tokio = {version="0.2", features=["tcp", "time", "process", "dns", "rt-threaded", "macros"]}
 futures = "0.3"
 
 [dev-dependencies]
