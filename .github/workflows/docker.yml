@@ -1,0 +1,15 @@
+on: [pull_request]
+
+name: Docker
+
+jobs:
+  docker-compose:
+    name: Test docker compose
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@master
+
+      - name: Run docker-compose
+        run: docker-compose -f docker-compose.yml up --abort-on-container-exit

@@ -37,10 +37,6 @@ async fn main() {
         }
     };
 
-    dbg!(&hosts);
-    dbg!(&timeout);
-    dbg!(&command);
-
     let futures = hosts
         .iter()
         .map(|addr| wait::Wait::new(addr.clone(), timeout.map(Duration::from_millis)).wait())
