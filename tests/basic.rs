@@ -50,3 +50,14 @@ fn multiple_fail() {
     let res = cmd.assert();
     res.failure().code(2);
 }
+
+#[test]
+fn silent() {
+    let server = common::TestServer::new(4006, Duration::from_millis(10));
+
+    let mut cmd = Command::cargo_bin("wait-for-them").unwrap();
+    let cmd = cmd.arg("localhost:4006").arg("-s");
+    cmd.assert().success().stdout("");
+
+    drop(server);
+}

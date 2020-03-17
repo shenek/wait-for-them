@@ -7,6 +7,18 @@ pub struct Options {
     pub hosts: Vec<String>,
     pub timeout: Option<u64>,
     pub command: Option<Vec<String>>,
+    pub silent: bool,
+}
+
+impl Default for Options {
+    fn default() -> Self {
+        Self {
+            hosts: vec![],
+            timeout: None,
+            command: None,
+            silent: false,
+        }
+    }
 }
 
 fn validate_domain_and_port(domain_and_port: &str) -> Result<(String, u16), String> {
@@ -43,11 +55,7 @@ enum ParseState {
 }
 
 pub fn parse(args: Vec<String>) -> Result<Options, Option<String>> {
-    let mut options = Options {
-        hosts: vec![],
-        timeout: None,
-        command: None,
-    };
+    let mut options = Options::default();
 
     let mut state = ParseState::Host;
 
@@ -72,6 +80,7 @@ pub fn parse(args: Vec<String>) -> Result<Options, Option<String>> {
             }
             ParseState::Host => match arg.as_ref() {
                 "-t" | "--timeout" => state = ParseState::Timeout,
+                "-s" | "--silent" => options.silent = true,
                 "--" => {
                     state = ParseState::Command;
                 }
@@ -136,5 +145,14 @@ mod tests {
             "ok:888".into()
         ])
         .is_err());
+    }
+
+    #[test]
+    fn silent() {
+        let options = parse(vec!["www.example.com:888".into()]);
+        assert!(!options.unwrap().silent);
+
+        let options = parse(vec!["-s".into(), "www.example.com:888".into()]);
+        assert!(options.unwrap().silent);
     }
 }
