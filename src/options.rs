@@ -81,6 +81,7 @@ pub fn parse(args: Vec<String>) -> Result<Options, Option<String>> {
             ParseState::Host => match arg.as_ref() {
                 "-t" | "--timeout" => state = ParseState::Timeout,
                 "-s" | "--silent" => options.silent = true,
+                "-h" | "--help" => return Err(None),
                 "--" => {
                     state = ParseState::Command;
                 }

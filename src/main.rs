@@ -21,6 +21,9 @@ fn print_help(error: Option<String>) {
     -s | --silent  don't display any output
     -t TIMEOUT | --timeout TIMEOUT  in miliseconds
         Wait till all host:port pairs are opened
+
+    wait-for-them -h | --help
+        Display help
 ",
         error
     );
