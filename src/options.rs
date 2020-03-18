@@ -1,4 +1,5 @@
 use regex;
+use std::net::IpAddr;
 
 static DOMAIN_REGEX: &str =
     r"^(([a-zA-Z_\-]{1,63}\.)*?)*?([a-zA-Z_\-]{1,63})(\.[a-zA-Z_\-]{1,63})?$";
@@ -42,7 +43,9 @@ fn validate_domain_and_port(domain_and_port: &str) -> Result<(String, u16), Stri
     // check hostname
     let hostname = parts[0].clone();
     let regex = regex::Regex::new(DOMAIN_REGEX).unwrap();
-    if !regex.is_match(&hostname) {
+    let ip: Result<IpAddr, _> = hostname.parse();
+
+    if !regex.is_match(&hostname) && ip.is_err() {
         return Err(format!("'{}' is not a valid hostname", hostname));
     }
     Ok((hostname, port))

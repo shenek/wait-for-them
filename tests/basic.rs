@@ -61,3 +61,14 @@ fn silent() {
 
     drop(server);
 }
+
+#[test]
+fn ip_address() {
+    let server = common::TestServer::new(4007, Duration::from_millis(10));
+
+    let mut cmd = Command::cargo_bin("wait-for-them").unwrap();
+    let cmd = cmd.arg("127.0.0.1:4007");
+    cmd.assert().success();
+
+    drop(server);
+}
