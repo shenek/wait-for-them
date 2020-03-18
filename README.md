@@ -1,5 +1,6 @@
 # Wait-For-Them
-Waits until all combination of hosts and ports are opened.
+Waits until all provided host and port pairs are opened.
+It is written using async rust.
 
 ## Installation
 
@@ -28,3 +29,7 @@ wait-for-them host1:port1 host2:port2 -- cmd arg1 arg2
 ```
 
 Note that if the ports are opened it returns the status code of cmd.
+
+## Motivation
+The main motivation of this program was to use it within `docker-compose` config file (see `docker-compose.yml`).
+To support waiting for multiple hostname:port records in parallel.
