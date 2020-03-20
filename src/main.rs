@@ -5,6 +5,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+mod callbacks;
 mod command;
 mod options;
 mod wait;
@@ -49,49 +50,28 @@ async fn main() {
 
     let instant = Instant::now();
 
-    let res = if silent {
-        let futures = hosts
-            .iter()
-            .map(|addr| {
-                wait::Wait::new(
-                    addr.clone(),
-                    timeout.map(Duration::from_millis),
-                    Box::pin(async {}),
-                    Box::pin(async {}),
-                )
-                .wait()
-            })
-            .collect::<Vec<_>>();
-        join_all(futures).await
-    } else {
-        let futures = hosts
-            .iter()
-            .map(|addr| {
-                let cloned1 = addr.clone();
-                let cloned2 = addr.clone();
-                wait::Wait::new(
-                    addr.clone(),
-                    timeout.map(Duration::from_millis),
-                    Box::pin(async move {
-                        println!(
-                            "Successfully connected to '{}' in {:.3} seconds",
-                            cloned1,
-                            instant.clone().elapsed().as_secs_f32()
-                        )
-                    }),
-                    Box::pin(async move {
-                        println!(
-                            "Failed to connected to '{}' in {:.3} seconds",
-                            cloned2,
-                            instant.clone().elapsed().as_secs_f32()
-                        )
-                    }),
-                )
-                .wait()
-            })
-            .collect::<Vec<_>>();
-        join_all(futures).await
-    };
+    let futures = hosts
+        .iter()
+        .map(|addr| {
+            let callbacks::Callback {
+                success: success_callback,
+                error: error_callback,
+            } = if silent {
+                callbacks::silent()
+            } else {
+                callbacks::simple(addr.clone(), instant)
+            };
+            wait::Wait::new(
+                addr.clone(),
+                timeout.map(Duration::from_millis),
+                success_callback,
+                error_callback,
+            )
+            .wait()
+        })
+        .collect::<Vec<_>>();
+    let res = join_all(futures).await;
+
     let err_count = res.iter().filter(|&e| !e).count();
 
     if err_count == 0 {
