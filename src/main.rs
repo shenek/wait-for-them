@@ -1,14 +1,8 @@
-use futures::future::join_all;
-use std::{
-    env,
-    process::exit,
-    time::{Duration, Instant},
-};
+use std::{env, process::exit, time::Instant};
 
-mod callbacks;
 mod command;
 mod options;
-mod wait;
+mod scanner;
 
 fn print_help(error: Option<String>) {
     let error = if let Some(err_msg) = error {
@@ -50,29 +44,9 @@ async fn main() {
 
     let instant = Instant::now();
 
-    let futures = hosts
-        .iter()
-        .map(|addr| {
-            let callbacks::Callback {
-                success: success_callback,
-                error: error_callback,
-            } = if silent {
-                callbacks::silent()
-            } else {
-                callbacks::simple(addr.clone(), instant)
-            };
-            wait::Wait::new(
-                addr.clone(),
-                timeout.map(Duration::from_millis),
-                success_callback,
-                error_callback,
-            )
-            .wait()
-        })
-        .collect::<Vec<_>>();
-    let res = join_all(futures).await;
+    let res = scanner::perform(&hosts, timeout, instant, silent).await;
 
-    let err_count = res.iter().filter(|&e| !e).count();
+    let err_count = res.iter().filter(|e| e.is_none()).count();
 
     if err_count == 0 {
         if !silent {

@@ -12,11 +12,13 @@ categories = ["command-line-utilities"]
 
 [features]
 default = []
+ui = ["indicatif"]
 
 [dependencies]
 futures = "0.3"
 regex = "1"
 tokio = {version="0.2", features=["tcp", "time", "process", "dns", "rt-threaded", "macros"]}
+indicatif = {git="https://github.com/mibac138/indicatif", branch="mpb-tick", optional=true}
 
 [dev-dependencies]
 assert_cmd = "~0.12"
