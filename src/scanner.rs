@@ -11,6 +11,7 @@ use std::{
 use tokio::{self, net::TcpStream, time};
 
 const RETRY_TIMEOUT: u64 = 100_u64;
+const NO_RESPONSE_TIMEOUT: u64 = 1000_u64;
 
 pub async fn perform(
     hosts: &[String],
@@ -134,9 +135,21 @@ impl Wait {
     }
 
     async fn wait_for_connection(&mut self) {
-        while TcpStream::connect(&self.address).await.is_err() {
+        loop {
             self.generator.generate_tick().await;
-            time::delay_for(Duration::from_millis(RETRY_TIMEOUT)).await;
+            let timeout = time::timeout(
+                Duration::from_millis(NO_RESPONSE_TIMEOUT),
+                TcpStream::connect(&self.address),
+            )
+            .await;
+            if timeout.is_err() {
+                continue;
+            }
+            if timeout.unwrap().is_err() {
+                time::delay_for(Duration::from_millis(RETRY_TIMEOUT)).await;
+            } else {
+                break;
+            }
         }
     }
 
