@@ -2,6 +2,9 @@
 Waits until all provided host and port pairs are opened.
 It is written using async rust.
 
+![Cast](/wait-for-them.gif)
+
+
 ## Installation
 
 ```bash
