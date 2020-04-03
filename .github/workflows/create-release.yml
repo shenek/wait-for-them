@@ -64,7 +64,6 @@ jobs:
       - name: Copy binary (minimal)
         if: matrix.os == 'windows-latest'
         run: |
-          mkdir -p ./dist
           cp target/release/wait-for-them.exe dist/wait-for-them-windows-minimal.exe
 
       - name: Copy binary (minimal)
@@ -140,7 +139,7 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: dist/wait-for-them-linux-minimal
-          asset_name: wait-for-them-linux
+          asset_name: wait-for-them-linux-minimal
           asset_content_type: application/bin
 
 
@@ -181,5 +180,5 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: dist/wait-for-them-macos-minimal
-          asset_name: wait-for-them-macos
+          asset_name: wait-for-them-macos-minimal
           asset_content_type: application/bin
