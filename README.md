@@ -7,8 +7,16 @@ It is written using async rust.
 
 ## Installation
 
+There are currently two way how to install the app.
+
+You can install the binary only with a minimal subset of features.
 ```bash
 cargo install wait-for-them
+```
+
+Or you can install it with all its features (including the nice progressbars).
+```bash
+cargo install wait-for-them --all-features
 ```
 
 ## Running
