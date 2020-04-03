@@ -267,7 +267,11 @@ impl Generator for ProgressGenerator {
                 .lock()
                 .unwrap()
                 .inc(instant.elapsed().as_millis() as u64);
-            multiple.lock().unwrap().tick(TickTimeLimit::Indefinite);
+            multiple
+                .lock()
+                .unwrap()
+                .tick(TickTimeLimit::Indefinite)
+                .unwrap_or(());
         })
     }
 
@@ -285,7 +289,8 @@ impl Generator for ProgressGenerator {
                 .clone()
                 .lock()
                 .unwrap()
-                .tick(TickTimeLimit::Indefinite);
+                .tick(TickTimeLimit::Indefinite)
+                .unwrap_or(());
         })
     }
 
@@ -301,7 +306,8 @@ impl Generator for ProgressGenerator {
                 .clone()
                 .lock()
                 .unwrap()
-                .tick(TickTimeLimit::Indefinite);
+                .tick(TickTimeLimit::Indefinite)
+                .unwrap_or(());
             instant.elapsed().as_millis() as u64
         })
     }
