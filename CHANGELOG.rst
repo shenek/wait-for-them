@@ -1,3 +1,8 @@
+0.3.1 (2020-05-29)
+------------------
+
+* use indicatif from crates.io add a MultiProgress workaround for async
+
 0.3.0 (2020-04-03)
 ------------------
 
