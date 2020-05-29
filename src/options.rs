@@ -1,4 +1,4 @@
-use regex;
+use regex::Regex;
 use std::net::IpAddr;
 
 static DOMAIN_REGEX: &str =
@@ -42,7 +42,7 @@ fn validate_domain_and_port(domain_and_port: &str) -> Result<(String, u16), Stri
 
     // check hostname
     let hostname = parts[0].clone();
-    let regex = regex::Regex::new(DOMAIN_REGEX).unwrap();
+    let regex = Regex::new(DOMAIN_REGEX).unwrap();
     let ip: Result<IpAddr, _> = hostname.parse();
 
     if !regex.is_match(&hostname) && ip.is_err() {

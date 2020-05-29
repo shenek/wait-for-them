@@ -1,6 +1,6 @@
 use futures::future::join_all;
 #[cfg(feature = "ui")]
-use indicatif::{MultiProgress, ProgressBar, ProgressStyle, TickTimeLimit};
+use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 #[cfg(feature = "ui")]
 use std::sync::{Arc, Mutex};
 use std::{
@@ -58,7 +58,7 @@ pub fn wait(
     instant: Instant,
 ) -> Vec<Pin<Box<dyn Future<Output = Option<u64>>>>> {
     let multiple = Arc::new(Mutex::new(MultiProgress::new()));
-    hosts
+    let res = hosts
         .iter()
         .map(|addr| {
             let pb = if let Some(timeout) = timeout {
@@ -87,7 +87,6 @@ pub fn wait(
 
             let generator = ProgressGenerator {
                 instant,
-                multiple: multiple.clone(),
                 progress: Arc::new(Mutex::new(pb)),
             };
             Wait::new(
@@ -97,7 +96,13 @@ pub fn wait(
             )
             .wait_future()
         })
-        .collect()
+        .collect();
+
+    // Spawn a thread which will Perform the drawing
+    // TODO this should be remove once indicatif Multi will become
+    // async compatible
+    tokio::task::spawn_blocking(move || multiple.lock().unwrap().join().unwrap());
+    res
 }
 
 pub fn wait_silent(
@@ -251,7 +256,6 @@ impl Generator for ProgressGenerator {
 #[cfg(feature = "ui")]
 pub struct ProgressGenerator {
     instant: Instant,
-    multiple: Arc<Mutex<MultiProgress>>,
     progress: Arc<Mutex<ProgressBar>>,
 }
 
@@ -259,7 +263,6 @@ pub struct ProgressGenerator {
 impl Generator for ProgressGenerator {
     fn generate_tick(&mut self) -> Pin<Box<dyn Future<Output = ()>>> {
         let progress = self.progress.clone();
-        let multiple = self.multiple.clone();
         let instant = self.instant;
         self.instant = Instant::now();
         Box::pin(async move {
@@ -267,11 +270,6 @@ impl Generator for ProgressGenerator {
                 .lock()
                 .unwrap()
                 .inc(instant.elapsed().as_millis() as u64);
-            multiple
-                .lock()
-                .unwrap()
-                .tick(TickTimeLimit::Indefinite)
-                .unwrap_or(());
         })
     }
 
@@ -281,33 +279,24 @@ impl Generator for ProgressGenerator {
 
     fn generate_error(&mut self) -> Pin<Box<dyn Future<Output = ()>>> {
         let progress = self.progress.clone();
-        let multiple = self.multiple.clone();
         Box::pin(async move {
             let unlocked = progress.lock().unwrap();
             unlocked.finish_with_message("✘");
-            multiple
-                .clone()
-                .lock()
-                .unwrap()
-                .tick(TickTimeLimit::Indefinite)
-                .unwrap_or(());
+
+            // wait for drawing thread to deal with this update
+            // TODO this should be remove once indicatif Multi will become
+            // async compatible
+            time::delay_for(Duration::from_millis(100)).await
         })
     }
 
     fn generate_success(&mut self) -> Pin<Box<dyn Future<Output = u64>>> {
         let progress = self.progress.clone();
-        let multiple = self.multiple.clone();
         let instant = self.instant;
         Box::pin(async move {
             let unlocked = progress.lock().unwrap();
             unlocked.set_message("✔");
             unlocked.finish_at_current_pos();
-            multiple
-                .clone()
-                .lock()
-                .unwrap()
-                .tick(TickTimeLimit::Indefinite)
-                .unwrap_or(());
             instant.elapsed().as_millis() as u64
         })
     }
