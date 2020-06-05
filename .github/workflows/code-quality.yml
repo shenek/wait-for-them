@@ -6,15 +6,17 @@ jobs:
   check:
     name: Check
     runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: "-D unused_crate_dependencies"
     steps:
       - name: Checkout sources
         uses: actions/checkout@v1
 
-      - name: Install stable toolchain
+      - name: Install nightly toolchain
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: nightly
           override: true
 
       - name: Run cargo check
@@ -67,28 +69,3 @@ jobs:
         with:
           command: clippy
           args: -- -D warnings
-
-  dependencies:
-    name: Dependencies
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v1
-
-      - name: Install nightly toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: nightly
-          override: true
-
-      - name: Install udeps
-        uses: actions-rs/cargo@v1
-        with:
-          command: install
-          args: cargo-udeps --version 0.1.7
-
-      - name: Find unused dependencies
-        uses: actions-rs/cargo@v1
-        with:
-          command: udeps
