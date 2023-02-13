@@ -11,13 +11,13 @@ repository = "https://github.com/shenek/wait-for-them"
 categories = ["command-line-utilities"]
 
 [features]
-default = ["ui"]
+default = []
 ui = ["indicatif"]
 
 [dependencies]
 futures = "0.3"
 regex = "1"
-tokio = {version="1.25", features=["time", "net" ,"process", "macros", "rt", "rt-multi-thread"]}
+tokio = {version="1.25", features=["macros", "net", "process", "rt", "rt-multi-thread", "sync", "time"]}
 indicatif = {version="0.17", features=["tokio"], optional=true}
 
 [dev-dependencies]

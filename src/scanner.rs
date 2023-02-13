@@ -2,13 +2,13 @@ use futures::future::join_all;
 #[cfg(feature = "ui")]
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 #[cfg(feature = "ui")]
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::{
     future::Future,
     pin::Pin,
     time::{Duration, Instant},
 };
-use tokio::{self, net::TcpStream, time};
+use tokio::{self, net::TcpStream, sync::Mutex, time};
 
 const RETRY_TIMEOUT: u64 = 100_u64;
 const NO_RESPONSE_TIMEOUT: u64 = 1000_u64;
@@ -57,14 +57,14 @@ pub fn wait(
     timeout: Option<u64>,
     instant: Instant,
 ) -> Vec<Pin<Box<dyn Future<Output = Option<u64>>>>> {
-    let multiple = Arc::new(Mutex::new(MultiProgress::new()));
+    let multiple = MultiProgress::new();
     hosts
-        .iter()
+        .into_iter()
         .map(|addr| {
             let pb = if let Some(timeout) = timeout {
-                multiple.lock().unwrap().add(ProgressBar::new(timeout))
+                multiple.add(ProgressBar::new(timeout))
             } else {
-                multiple.lock().unwrap().add(ProgressBar::new_spinner())
+                multiple.add(ProgressBar::new_spinner())
             };
             let sty = if timeout.is_some() {
                 ProgressStyle::default_bar()
@@ -264,7 +264,7 @@ impl Generator for ProgressGenerator {
         Box::pin(async move {
             progress
                 .lock()
-                .unwrap()
+                .await
                 .inc(instant.elapsed().as_millis() as u64);
         })
     }
@@ -276,7 +276,7 @@ impl Generator for ProgressGenerator {
     fn generate_error(&mut self) -> Pin<Box<dyn Future<Output = ()>>> {
         let progress = self.progress.clone();
         Box::pin(async move {
-            let unlocked = progress.lock().unwrap();
+            let unlocked = progress.lock().await;
             unlocked.finish_with_message("✘");
         })
     }
@@ -285,7 +285,7 @@ impl Generator for ProgressGenerator {
         let progress = self.progress.clone();
         let instant = self.instant;
         Box::pin(async move {
-            let unlocked = progress.lock().unwrap();
+            let unlocked = progress.lock().await;
             unlocked.set_message("✔");
             unlocked.finish();
             instant.elapsed().as_millis() as u64
