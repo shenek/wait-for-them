@@ -11,7 +11,7 @@ repository = "https://github.com/shenek/wait-for-them"
 categories = ["command-line-utilities"]
 
 [features]
-default = []
+default = ["ui"]
 ui = ["indicatif"]
 
 [dependencies]
