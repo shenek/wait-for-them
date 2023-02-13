@@ -17,11 +17,11 @@ ui = ["indicatif"]
 [dependencies]
 futures = "0.3"
 regex = "1"
-tokio = {version="0.2", features=["tcp", "time", "process", "dns", "rt-threaded", "macros", "blocking"]}
-indicatif = {version="0.14", optional=true}
+tokio = {version="1.25", features=["time", "net" ,"process", "macros", "rt", "rt-multi-thread"]}
+indicatif = {version="0.17", features=["tokio"], optional=true}
 
 [dev-dependencies]
-assert_cmd = "~0.12"
+assert_cmd = "~2.0"
 
 [[bin]]
 name = "wait-for-them"

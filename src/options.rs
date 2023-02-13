@@ -4,22 +4,12 @@ use std::net::IpAddr;
 static DOMAIN_REGEX: &str =
     r"^(([a-zA-Z_\-]{1,63}\.)*?)*?([a-zA-Z_\-]{1,63})(\.[a-zA-Z_\-]{1,63})?$";
 
+#[derive(Default)]
 pub struct Options {
     pub hosts: Vec<String>,
     pub timeout: Option<u64>,
     pub command: Option<Vec<String>>,
     pub silent: bool,
-}
-
-impl Default for Options {
-    fn default() -> Self {
-        Self {
-            hosts: vec![],
-            timeout: None,
-            command: None,
-            silent: false,
-        }
-    }
 }
 
 fn validate_domain_and_port(domain_and_port: &str) -> Result<(String, u16), String> {

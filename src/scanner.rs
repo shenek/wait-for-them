@@ -58,7 +58,7 @@ pub fn wait(
     instant: Instant,
 ) -> Vec<Pin<Box<dyn Future<Output = Option<u64>>>>> {
     let multiple = Arc::new(Mutex::new(MultiProgress::new()));
-    let res = hosts
+    hosts
         .iter()
         .map(|addr| {
             let pb = if let Some(timeout) = timeout {
@@ -72,6 +72,7 @@ pub fn wait(
                         "{} {}",
                         "[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {msg}", addr
                     ))
+                    .unwrap()
                     .progress_chars("##-")
             } else {
                 ProgressStyle::default_spinner()
@@ -80,6 +81,7 @@ pub fn wait(
                         "{} {}",
                         "[{elapsed_precise}] {spinner} {msg}", addr
                     ))
+                    .unwrap()
             };
             pb.set_style(sty);
             pb.set_message(" ");
@@ -96,13 +98,7 @@ pub fn wait(
             )
             .wait_future()
         })
-        .collect();
-
-    // Spawn a thread which will Perform the drawing
-    // TODO this should be remove once indicatif Multi will become
-    // async compatible
-    tokio::task::spawn_blocking(move || multiple.lock().unwrap().join().unwrap());
-    res
+        .collect()
 }
 
 pub fn wait_silent(
@@ -151,7 +147,7 @@ impl Wait {
                 continue;
             }
             if timeout.unwrap().is_err() {
-                time::delay_for(Duration::from_millis(RETRY_TIMEOUT)).await;
+                time::sleep(Duration::from_millis(RETRY_TIMEOUT)).await;
             } else {
                 break;
             }
@@ -282,11 +278,6 @@ impl Generator for ProgressGenerator {
         Box::pin(async move {
             let unlocked = progress.lock().unwrap();
             unlocked.finish_with_message("✘");
-
-            // wait for drawing thread to deal with this update
-            // TODO this should be remove once indicatif Multi will become
-            // async compatible
-            time::delay_for(Duration::from_millis(100)).await
         })
     }
 
@@ -296,7 +287,7 @@ impl Generator for ProgressGenerator {
         Box::pin(async move {
             let unlocked = progress.lock().unwrap();
             unlocked.set_message("✔");
-            unlocked.finish_at_current_pos();
+            unlocked.finish();
             instant.elapsed().as_millis() as u64
         })
     }
