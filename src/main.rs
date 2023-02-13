@@ -58,7 +58,7 @@ async fn main() {
 
         if let Some(mut cmd) = command {
             if !silent {
-                println!("Staring '{}'", cmd.join(" "));
+                println!("Starting '{}'", cmd.join(" "));
             }
             let executable = cmd.remove(0);
             match command::exec(&executable, cmd).await {
