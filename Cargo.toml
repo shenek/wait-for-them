@@ -2,7 +2,7 @@
 name = "wait-for-them"
 version = "0.3.1"
 authors = ["Stepan Henek <stepan@henek.name>"]
-edition = "2018"
+edition = "2021"
 description = "Waits for TCP ports to be opened or for 200 status on http(s) urls"
 license = "GPL-3.0"
 readme = "README.md"
