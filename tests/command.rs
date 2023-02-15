@@ -12,9 +12,12 @@ fn command_timeout() {
         .arg("localhost:4100")
         .arg("localhost:4101")
         .arg("localhost:4102")
+        .arg("http://localhost:4100")
+        .arg("https://localhost:4101")
+        .arg("http://localhost:4102")
         .arg("--")
         .arg("true");
-    cmd.assert().failure().code(3);
+    cmd.assert().failure().code(6);
 }
 
 #[test]
@@ -26,6 +29,7 @@ fn command_error() {
         .arg("--timeout")
         .arg("1000")
         .arg("localhost:4103")
+        .arg("http://localhost:4103")
         .arg("--")
         .arg("false");
     cmd.assert().failure().code(1);
@@ -41,6 +45,7 @@ fn command_ok() {
     let cmd = cmd
         .arg("--timeout")
         .arg("1000")
+        .arg("http://localhost:4104")
         .arg("localhost:4104")
         .arg("--")
         .arg("true");

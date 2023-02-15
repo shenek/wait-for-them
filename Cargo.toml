@@ -3,7 +3,7 @@ name = "wait-for-them"
 version = "0.3.1"
 authors = ["Stepan Henek <stepan@henek.name>"]
 edition = "2018"
-description = "Waits for TCP ports to be opened"
+description = "Waits for TCP ports to be opened or for 200 status on http(s) urls"
 license = "GPL-3.0"
 readme = "README.md"
 keywords = ["cli", "wait"]
@@ -11,14 +11,17 @@ repository = "https://github.com/shenek/wait-for-them"
 categories = ["command-line-utilities"]
 
 [features]
-default = ["ui"]
+default = ["ui", "http"]
 ui = ["indicatif"]
+http = ["hyper", "hyper-rustls"]
 
 [dependencies]
 futures = "0.3"
+indicatif = {version="0.17", features=["tokio"], optional=true}
+hyper = {version="0.14", features=["client", "http1", "http2"], optional=true}
+hyper-rustls = {version="0.23", default-features=false, features=["native-tokio", "http1", "http2", "tls12"], optional=true}
 regex = "1"
 tokio = {version="1.25", features=["macros", "net", "process", "rt", "rt-multi-thread", "sync", "time"]}
-indicatif = {version="0.17", features=["tokio"], optional=true}
 
 [dev-dependencies]
 assert_cmd = "~2.0"

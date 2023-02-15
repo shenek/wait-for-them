@@ -8,7 +8,7 @@ fn basic() {
     let server = common::TestServer::new(4000, Duration::from_millis(10));
 
     let mut cmd = Command::cargo_bin("wait-for-them").unwrap();
-    let cmd = cmd.arg("localhost:4000");
+    let cmd = cmd.arg("localhost:4000").arg("http://localhost:4000/");
     cmd.assert().success();
 
     drop(server);
@@ -17,7 +17,11 @@ fn basic() {
 #[test]
 fn timeout() {
     let mut cmd = Command::cargo_bin("wait-for-them").unwrap();
-    let cmd = cmd.arg("--timeout").arg("1000").arg("localhost:4001");
+    let cmd = cmd
+        .arg("--timeout")
+        .arg("1000")
+        .arg("localhost:4001")
+        .arg("http://localhost:4000/");
     cmd.assert().failure();
 }
 
@@ -33,7 +37,9 @@ fn multiple() {
         .arg("--timeout")
         .arg("10000")
         .arg("localhost:4002")
-        .arg("localhost:4003");
+        .arg("localhost:4003")
+        .arg("http://localhost:4002/")
+        .arg("http://localhost:4003/");
     cmd.assert().success();
 
     drop(servers);
@@ -46,9 +52,11 @@ fn multiple_fail() {
         .arg("--timeout")
         .arg("10000")
         .arg("localhost:4004")
-        .arg("localhost:4005");
+        .arg("localhost:4005")
+        .arg("http://localhost:4004/")
+        .arg("http://localhost:4005/");
     let res = cmd.assert();
-    res.failure().code(2);
+    res.failure().code(4);
 }
 
 #[test]
@@ -56,7 +64,10 @@ fn silent() {
     let server = common::TestServer::new(4006, Duration::from_millis(10));
 
     let mut cmd = Command::cargo_bin("wait-for-them").unwrap();
-    let cmd = cmd.arg("localhost:4006").arg("-s");
+    let cmd = cmd
+        .arg("localhost:4006")
+        .arg("http://localhost:4006/")
+        .arg("-s");
     cmd.assert().success().stdout("");
 
     drop(server);
@@ -67,7 +78,7 @@ fn ip_address() {
     let server = common::TestServer::new(4007, Duration::from_millis(10));
 
     let mut cmd = Command::cargo_bin("wait-for-them").unwrap();
-    let cmd = cmd.arg("127.0.0.1:4007");
+    let cmd = cmd.arg("127.0.0.1:4007").arg("http://127.0.0.1:4007/");
     cmd.assert().success();
 
     drop(server);

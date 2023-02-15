@@ -1,3 +1,5 @@
+#[cfg(feature = "http")]
+use hyper::Uri;
 use regex::Regex;
 use std::net::IpAddr;
 
@@ -41,6 +43,20 @@ fn validate_domain_and_port(domain_and_port: &str) -> Result<(String, u16), Stri
     Ok((hostname, port))
 }
 
+#[cfg(not(feature = "http"))]
+fn validate_uri(_uri: &str) -> Result<(), String> {
+    panic!("Not compiled with 'http' feature")
+}
+
+#[cfg(feature = "http")]
+fn validate_uri(uri: &str) -> Result<(), String> {
+    if !uri.starts_with("http://") && !uri.starts_with("https://") {
+        return Err("Only http and https protocols are supported".into());
+    }
+    uri.parse::<Uri>().map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 enum ParseState {
     Host,
     Timeout,
@@ -79,7 +95,9 @@ pub fn parse(args: Vec<String>) -> Result<Options, Option<String>> {
                     state = ParseState::Command;
                 }
                 _ => {
-                    validate_domain_and_port(&arg)?;
+                    if cfg!(not(feature = "http")) || validate_uri(&arg).is_err() {
+                        validate_domain_and_port(&arg)?;
+                    }
                     options.hosts.push(arg);
                 }
             },
@@ -88,7 +106,7 @@ pub fn parse(args: Vec<String>) -> Result<Options, Option<String>> {
 
     if options.hosts.is_empty() {
         Err(Some(
-            "You need to set at least one host and port".to_string(),
+            "You need to set at least one item to verify".to_string(),
         ))
     } else {
         Ok(options)
@@ -148,5 +166,15 @@ mod tests {
 
         let options = parse(vec!["-s".into(), "www.example.com:888".into()]);
         assert!(options.unwrap().silent);
+    }
+
+    #[cfg(feature = "http")]
+    #[test]
+    fn uri() {
+        assert!(parse(vec!["https://www.example.com".into()]).is_ok());
+        assert!(parse(vec!["http://www.example.com".into()]).is_ok());
+        assert!(parse(vec!["ftp://www.example.com".into()]).is_err());
+        assert!(parse(vec!["https://www.example.com:11/long?x=1&y=2#frag".into()]).is_ok());
+        assert!(parse(vec!["http://www.example.com:22/long?x=1&y=2#frag".into()]).is_ok());
     }
 }

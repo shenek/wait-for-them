@@ -1,4 +1,8 @@
 use futures::future::join_all;
+#[cfg(feature = "http")]
+use hyper::{Body, Client, StatusCode, Uri};
+#[cfg(feature = "http")]
+use hyper_rustls::HttpsConnectorBuilder;
 #[cfg(feature = "ui")]
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 #[cfg(feature = "ui")]
@@ -8,7 +12,9 @@ use std::{
     pin::Pin,
     time::{Duration, Instant},
 };
-use tokio::{self, net::TcpStream, sync::Mutex, time};
+#[cfg(feature = "ui")]
+use tokio::sync::Mutex;
+use tokio::{self, net::TcpStream, time};
 
 const RETRY_TIMEOUT: u64 = 100_u64;
 const NO_RESPONSE_TIMEOUT: u64 = 1000_u64;
@@ -59,7 +65,7 @@ pub fn wait(
 ) -> Vec<Pin<Box<dyn Future<Output = Option<u64>>>>> {
     let multiple = MultiProgress::new();
     hosts
-        .into_iter()
+        .iter()
         .map(|addr| {
             let pb = if let Some(timeout) = timeout {
                 multiple.add(ProgressBar::new(timeout))
@@ -135,7 +141,11 @@ impl Wait {
         }
     }
 
-    async fn wait_for_connection(&mut self) {
+    fn is_http(&self) -> bool {
+        self.address.starts_with("http://") || self.address.starts_with("https://")
+    }
+
+    async fn wait_for_connection_tcp(&mut self) {
         loop {
             self.generator.generate_tick().await;
             let timeout = time::timeout(
@@ -154,10 +164,55 @@ impl Wait {
         }
     }
 
+    #[cfg(not(feature = "http"))]
+    async fn wait_for_connection_http(&mut self) {
+        panic!("Not compiled with 'http' feature")
+    }
+
+    #[cfg(feature = "http")]
+    async fn wait_for_connection_http(&mut self) {
+        let https_or_http = HttpsConnectorBuilder::new()
+            .with_native_roots()
+            .https_or_http()
+            .enable_http1()
+            .enable_http2()
+            .build();
+
+        let client: Client<_, Body> = Client::builder().build(https_or_http);
+        let url: Uri = (self.address).parse().unwrap();
+
+        loop {
+            self.generator.generate_tick().await;
+            let timeout = time::timeout(
+                Duration::from_millis(NO_RESPONSE_TIMEOUT),
+                client.get(url.clone()),
+            )
+            .await;
+
+            match timeout {
+                Ok(Err(_)) => {
+                    time::sleep(Duration::from_millis(RETRY_TIMEOUT)).await;
+                }
+                Ok(Ok(resp)) => {
+                    if resp.status() == StatusCode::OK {
+                        break;
+                    } else {
+                        time::sleep(Duration::from_millis(RETRY_TIMEOUT)).await;
+                    }
+                }
+                Err(_) => continue,
+            }
+        }
+    }
+
     fn wait_future(mut self) -> Pin<Box<dyn Future<Output = Option<u64>>>> {
         Box::pin(async move {
             if let Some(timeout) = self.timeout {
-                let res = time::timeout(timeout, self.wait_for_connection()).await;
+                let res = if self.is_http() {
+                    time::timeout(timeout, self.wait_for_connection_http()).await
+                } else {
+                    time::timeout(timeout, self.wait_for_connection_tcp()).await
+                };
                 if res.is_ok() {
                     Some(self.generator.generate_success().await)
                 } else {
@@ -165,7 +220,11 @@ impl Wait {
                     None
                 }
             } else {
-                self.wait_for_connection().await;
+                if self.is_http() {
+                    self.wait_for_connection_http().await;
+                } else {
+                    self.wait_for_connection_tcp().await
+                }
                 Some(self.generator.generate_success().await)
             }
         })

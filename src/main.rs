@@ -10,17 +10,22 @@ fn print_help(error: Option<String>) {
     } else {
         String::new()
     };
+    let first_line = if cfg!(feature = "http") {
+        "wait-for-them [-t timeout] [-s] host:port|url [host:port|url [host:port|url...]] [-- command [arg [arg...]]"
+    } else {
+        "wait-for-them [-t timeout] [-s] host:port [host:port [host:port...]] [-- command [arg [arg...]]"
+    };
     println!(
         "{}Usage:
-    wait-for-them [-t timeout] [-s] host:port [host:port [host:port...]] [-- command [arg [arg...]]
+    {}
     -s | --silent  don't display any output
     -t TIMEOUT | --timeout TIMEOUT  in miliseconds
-        Wait till all host:port pairs are opened
+        Wait till all links are verified
 
     wait-for-them -h | --help
         Display help
 ",
-        error
+        error, first_line,
     );
 }
 
@@ -51,7 +56,7 @@ async fn main() {
     if err_count == 0 {
         if !silent {
             println!(
-                "All ports were opened in {:.3} seconds.",
+                "All items verified in {:.3} seconds.",
                 instant.elapsed().as_secs_f32()
             )
         }
@@ -70,7 +75,7 @@ async fn main() {
         }
     } else if !silent {
         println!(
-            "Failed to open all ports in {:.3} seconds.",
+            "Failed verify all items in {:.3} seconds.",
             instant.elapsed().as_secs_f32()
         );
     }
