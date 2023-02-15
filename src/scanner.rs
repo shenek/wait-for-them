@@ -22,9 +22,10 @@ const NO_RESPONSE_TIMEOUT: u64 = 1000_u64;
 pub async fn perform(
     hosts: &[String],
     timeout: Option<u64>,
-    instant: Instant,
+    instant: Option<Instant>,
     silent: bool,
 ) -> Vec<Option<u64>> {
+    let instant = instant.unwrap_or_else(Instant::now);
     let futures = if silent {
         wait_silent(hosts, timeout, instant)
     } else {

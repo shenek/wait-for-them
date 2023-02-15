@@ -49,7 +49,7 @@ async fn main() {
 
     let instant = Instant::now();
 
-    let res = scanner::perform(&hosts, timeout, instant, silent).await;
+    let res = scanner::perform(&hosts, timeout, Some(instant), silent).await;
 
     let err_count = res.iter().filter(|e| e.is_none()).count();
 
