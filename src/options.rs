@@ -1,60 +1,11 @@
-#[cfg(feature = "http")]
-use hyper::Uri;
-use regex::Regex;
-use std::net::IpAddr;
-
-static DOMAIN_REGEX: &str =
-    r"^(([a-zA-Z_\-]{1,63}\.)*?)*?([a-zA-Z_\-]{1,63})(\.[a-zA-Z_\-]{1,63})?$";
+use wait_for_them::ToCheck;
 
 #[derive(Default)]
 pub struct Options {
-    pub hosts: Vec<String>,
+    pub to_check: Vec<ToCheck>,
     pub timeout: Option<u64>,
     pub command: Option<Vec<String>>,
     pub silent: bool,
-}
-
-fn validate_domain_and_port(domain_and_port: &str) -> Result<(String, u16), String> {
-    let parts: Vec<String> = domain_and_port.split(':').map(String::from).collect();
-    if parts.len() != 2 {
-        return Err(format!(
-            "'{}' doesn't match <hostname>:<port> pattern",
-            domain_and_port
-        ));
-    }
-
-    // check port
-    let port: u16 = parts[1]
-        .parse()
-        .map_err(|err| format!("'{}', port error: {}", domain_and_port, err))?;
-
-    if port == 0 {
-        return Err("dynamic port number (0) can't be used here".into());
-    }
-
-    // check hostname
-    let hostname = parts[0].clone();
-    let regex = Regex::new(DOMAIN_REGEX).unwrap();
-    let ip: Result<IpAddr, _> = hostname.parse();
-
-    if !regex.is_match(&hostname) && ip.is_err() {
-        return Err(format!("'{}' is not a valid hostname", hostname));
-    }
-    Ok((hostname, port))
-}
-
-#[cfg(not(feature = "http"))]
-fn validate_uri(_uri: &str) -> Result<(), String> {
-    panic!("Not compiled with 'http' feature")
-}
-
-#[cfg(feature = "http")]
-fn validate_uri(uri: &str) -> Result<(), String> {
-    if !uri.starts_with("http://") && !uri.starts_with("https://") {
-        return Err("Only http and https protocols are supported".into());
-    }
-    uri.parse::<Uri>().map_err(|e| e.to_string())?;
-    Ok(())
 }
 
 enum ParseState {
@@ -95,16 +46,13 @@ pub fn parse(args: Vec<String>) -> Result<Options, Option<String>> {
                     state = ParseState::Command;
                 }
                 _ => {
-                    if cfg!(not(feature = "http")) || validate_uri(&arg).is_err() {
-                        validate_domain_and_port(&arg)?;
-                    }
-                    options.hosts.push(arg);
+                    options.to_check.push(arg.parse::<ToCheck>()?);
                 }
             },
         }
     }
 
-    if options.hosts.is_empty() {
+    if options.to_check.is_empty() {
         Err(Some(
             "You need to set at least one item to verify".to_string(),
         ))

@@ -26,6 +26,12 @@ tokio = {version="1.25", features=["macros", "net", "process", "rt", "rt-multi-t
 [dev-dependencies]
 assert_cmd = "~2.0"
 
+[lib]
+name = "wait_for_them"
+path = "src/lib.rs"
+doc = true
+
 [[bin]]
 name = "wait-for-them"
 path = "src/main.rs"
+doc = false

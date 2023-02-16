@@ -1,8 +1,18 @@
-use std::{env, process::exit, time::Instant};
-
 mod command;
 mod options;
-mod scanner;
+
+use std::{env, process::exit, time::Instant};
+use wait_for_them::wait_for_them;
+
+// For some reason these "deps" are required with `-D unused-crate-dependencies`
+use futures as _;
+#[cfg(feature = "http")]
+use hyper as _;
+#[cfg(feature = "http")]
+use hyper_rustls as _;
+#[cfg(feature = "ui")]
+use indicatif as _;
+use regex as _;
 
 fn print_help(error: Option<String>) {
     let error = if let Some(err_msg) = error {
@@ -35,7 +45,7 @@ async fn main() {
     args.remove(0);
 
     let options::Options {
-        hosts,
+        to_check,
         timeout,
         command,
         silent,
@@ -49,7 +59,7 @@ async fn main() {
 
     let instant = Instant::now();
 
-    let res = scanner::perform(&hosts, timeout, Some(instant), silent).await;
+    let res = wait_for_them(&to_check, timeout, Some(instant), silent).await;
 
     let err_count = res.iter().filter(|e| e.is_none()).count();
 

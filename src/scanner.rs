@@ -1,6 +1,5 @@
-use futures::future::join_all;
 #[cfg(feature = "http")]
-use hyper::{Body, Client, StatusCode, Uri};
+use hyper::{Body, Client, StatusCode};
 #[cfg(feature = "http")]
 use hyper_rustls::HttpsConnectorBuilder;
 #[cfg(feature = "ui")]
@@ -16,40 +15,26 @@ use std::{
 use tokio::sync::Mutex;
 use tokio::{self, net::TcpStream, time};
 
+use crate::ToCheck;
+
 const RETRY_TIMEOUT: u64 = 100_u64;
 const NO_RESPONSE_TIMEOUT: u64 = 1000_u64;
 
-pub async fn perform(
-    hosts: &[String],
-    timeout: Option<u64>,
-    instant: Option<Instant>,
-    silent: bool,
-) -> Vec<Option<u64>> {
-    let instant = instant.unwrap_or_else(Instant::now);
-    let futures = if silent {
-        wait_silent(hosts, timeout, instant)
-    } else {
-        wait(hosts, timeout, instant)
-    };
-
-    join_all(futures).await
-}
-
 #[cfg(not(feature = "ui"))]
 pub fn wait(
-    hosts: &[String],
+    hosts_ports_or_http_urls: &[ToCheck],
     timeout: Option<u64>,
     instant: Instant,
 ) -> Vec<Pin<Box<dyn Future<Output = Option<u64>>>>> {
-    hosts
+    hosts_ports_or_http_urls
         .iter()
-        .map(|addr| {
+        .map(|to_check| {
             let generator = ProgressGenerator {
-                address: addr.clone(),
+                to_check: to_check.clone(),
                 instant,
             };
             Wait::new(
-                addr.clone(),
+                to_check.clone(),
                 timeout.map(Duration::from_millis),
                 Box::new(generator),
             )
@@ -60,14 +45,14 @@ pub fn wait(
 
 #[cfg(feature = "ui")]
 pub fn wait(
-    hosts: &[String],
+    hosts_ports_or_http_urls: &[ToCheck],
     timeout: Option<u64>,
     instant: Instant,
 ) -> Vec<Pin<Box<dyn Future<Output = Option<u64>>>>> {
     let multiple = MultiProgress::new();
-    hosts
+    hosts_ports_or_http_urls
         .iter()
-        .map(|addr| {
+        .map(|to_check| {
             let pb = if let Some(timeout) = timeout {
                 multiple.add(ProgressBar::new(timeout))
             } else {
@@ -77,7 +62,7 @@ pub fn wait(
                 ProgressStyle::default_bar()
                     .template(&format!(
                         "{} {}",
-                        "[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {msg}", addr
+                        "[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {msg}", to_check
                     ))
                     .unwrap()
                     .progress_chars("##-")
@@ -86,7 +71,7 @@ pub fn wait(
                     .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ ")
                     .template(&format!(
                         "{} {}",
-                        "[{elapsed_precise}] {spinner} {msg}", addr
+                        "[{elapsed_precise}] {spinner} {msg}", to_check
                     ))
                     .unwrap()
             };
@@ -99,7 +84,7 @@ pub fn wait(
                 progress: Arc::new(Mutex::new(pb)),
             };
             Wait::new(
-                addr.clone(),
+                to_check.clone(),
                 timeout.map(Duration::from_millis),
                 Box::new(generator),
             )
@@ -109,16 +94,16 @@ pub fn wait(
 }
 
 pub fn wait_silent(
-    hosts: &[String],
+    hosts_ports_or_http_urls: &[ToCheck],
     timeout: Option<u64>,
     instant: Instant,
 ) -> Vec<Pin<Box<dyn Future<Output = Option<u64>>>>> {
-    hosts
+    hosts_ports_or_http_urls
         .iter()
-        .map(|addr| {
+        .map(|to_check| {
             let progress = SilentGenerator::new(instant);
             Wait::new(
-                addr.clone(),
+                to_check.clone(),
                 timeout.map(Duration::from_millis),
                 Box::new(progress),
             )
@@ -128,30 +113,31 @@ pub fn wait_silent(
 }
 
 struct Wait {
-    address: String,
+    to_check: ToCheck,
     timeout: Option<Duration>,
     generator: Box<dyn Generator>,
 }
 
 impl Wait {
-    pub fn new(address: String, timeout: Option<Duration>, generator: Box<dyn Generator>) -> Self {
+    pub fn new(
+        to_check: ToCheck,
+        timeout: Option<Duration>,
+        generator: Box<dyn Generator>,
+    ) -> Self {
         Self {
-            address,
+            to_check,
             timeout,
             generator,
         }
     }
 
-    fn is_http(&self) -> bool {
-        self.address.starts_with("http://") || self.address.starts_with("https://")
-    }
-
     async fn wait_for_connection_tcp(&mut self) {
         loop {
             self.generator.generate_tick().await;
+            let ToCheck::HostnameAndPort(ref domain, port) = self.to_check else { unreachable!() };
             let timeout = time::timeout(
                 Duration::from_millis(NO_RESPONSE_TIMEOUT),
-                TcpStream::connect(&self.address),
+                TcpStream::connect((domain.as_str(), port)),
             )
             .await;
             if timeout.is_err() {
@@ -165,11 +151,6 @@ impl Wait {
         }
     }
 
-    #[cfg(not(feature = "http"))]
-    async fn wait_for_connection_http(&mut self) {
-        panic!("Not compiled with 'http' feature")
-    }
-
     #[cfg(feature = "http")]
     async fn wait_for_connection_http(&mut self) {
         let https_or_http = HttpsConnectorBuilder::new()
@@ -180,7 +161,7 @@ impl Wait {
             .build();
 
         let client: Client<_, Body> = Client::builder().build(https_or_http);
-        let url: Uri = (self.address).parse().unwrap();
+        let ToCheck::HttpOrHttpsUrl(ref url) = self.to_check else { unreachable!() };
 
         loop {
             self.generator.generate_tick().await;
@@ -206,13 +187,18 @@ impl Wait {
         }
     }
 
+    #[cfg(not(feature = "http"))]
+    async fn wait_for_connection_http(&mut self) {
+        panic!("Not compiled with 'http' feature")
+    }
+
     fn wait_future(mut self) -> Pin<Box<dyn Future<Output = Option<u64>>>> {
         Box::pin(async move {
             if let Some(timeout) = self.timeout {
-                let res = if self.is_http() {
-                    time::timeout(timeout, self.wait_for_connection_http()).await
-                } else {
+                let res = if let ToCheck::HostnameAndPort(..) = self.to_check {
                     time::timeout(timeout, self.wait_for_connection_tcp()).await
+                } else {
+                    time::timeout(timeout, self.wait_for_connection_http()).await
                 };
                 if res.is_ok() {
                     Some(self.generator.generate_success().await)
@@ -221,11 +207,11 @@ impl Wait {
                     None
                 }
             } else {
-                if self.is_http() {
-                    self.wait_for_connection_http().await;
+                if let ToCheck::HostnameAndPort(..) = self.to_check {
+                    self.wait_for_connection_tcp().await;
                 } else {
-                    self.wait_for_connection_tcp().await
-                }
+                    self.wait_for_connection_http().await;
+                };
                 Some(self.generator.generate_success().await)
             }
         })
@@ -267,8 +253,8 @@ impl Generator for SilentGenerator {
 
 #[cfg(not(feature = "ui"))]
 pub struct ProgressGenerator {
+    to_check: ToCheck,
     instant: Instant,
-    address: String,
 }
 
 #[cfg(not(feature = "ui"))]
@@ -282,26 +268,26 @@ impl Generator for ProgressGenerator {
     }
 
     fn generate_error(&mut self) -> Pin<Box<dyn Future<Output = ()>>> {
-        let address = self.address.clone();
+        let to_check = self.to_check.clone();
         let instant = self.instant;
 
         Box::pin(async move {
             println!(
                 "Failed to connect to '{}' in {:.3} seconds",
-                address,
+                to_check,
                 instant.elapsed().as_secs_f32()
             )
         })
     }
 
     fn generate_success(&mut self) -> Pin<Box<dyn Future<Output = u64>>> {
-        let address = self.address.clone();
+        let to_check = self.to_check.clone();
         let instant = self.instant;
 
         Box::pin(async move {
             println!(
                 "Successfully connected to '{}' in {:.3} seconds",
-                address,
+                to_check,
                 instant.elapsed().as_secs_f32()
             );
             instant.elapsed().as_millis() as u64
