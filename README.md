@@ -1,3 +1,9 @@
+![Security audit](https://github.com/shenek/wait-for-them/workflows/Security%20audit/badge.svg)
+![Code Quality](https://github.com/shenek/wait-for-them/workflows/Code%20Quality/badge.svg)
+![Release](https://github.com/shenek/wait-for-them/workflows/Release/badge.svg)
+[![Documentation](https://docs.rs/wait-for-them/badge.svg)](https://docs.rs/wait-for-them/)
+![Downloads](https://img.shields.io/crates/d/wait-for-them.svg)
+
 # Wait-For-Them
 Waits until all provided host and port pairs are opened or return status 200 in case of http(s) url.
 It is written using async rust.
