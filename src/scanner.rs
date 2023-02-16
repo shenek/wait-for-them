@@ -3,7 +3,7 @@ use hyper::{Body, Client, StatusCode};
 #[cfg(feature = "http")]
 use hyper_rustls::HttpsConnectorBuilder;
 #[cfg(feature = "ui")]
-use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
+use indicatif::{MultiProgress, ProgressBar, ProgressFinish, ProgressStyle};
 #[cfg(feature = "ui")]
 use std::sync::Arc;
 use std::{
@@ -54,9 +54,9 @@ pub fn wait(
         .iter()
         .map(|to_check| {
             let pb = if let Some(timeout) = timeout {
-                multiple.add(ProgressBar::new(timeout))
+                multiple.add(ProgressBar::new(timeout).with_finish(ProgressFinish::AndLeave))
             } else {
-                multiple.add(ProgressBar::new_spinner())
+                multiple.add(ProgressBar::new_spinner().with_finish(ProgressFinish::AndLeave))
             };
             let sty = if timeout.is_some() {
                 ProgressStyle::default_bar()
@@ -331,10 +331,11 @@ impl Generator for ProgressGenerator {
         let progress = self.progress.clone();
         let instant = self.instant;
         Box::pin(async move {
+            let milis: u64 = instant.elapsed().as_millis() as u64;
             let unlocked = progress.lock().await;
             unlocked.set_message("✔");
-            unlocked.finish();
-            instant.elapsed().as_millis() as u64
+            unlocked.abandon();
+            milis
         })
     }
 }
