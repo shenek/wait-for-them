@@ -1,3 +1,16 @@
+0.4.0 (2023-02-17)
+------------------
+
+* update dependencies
+* upgrade 2021 edition to 2021
+* remove cargo udeps
+* make ui features default
+* add http feature (default) to verify http urls
+* make it possible to use this package as library
+* api refactoring and polishing
+* add badges to README
+* update screencast using asciinema
+
 0.3.1 (2020-05-29)
 ------------------
 
