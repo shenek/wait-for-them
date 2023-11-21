@@ -29,7 +29,7 @@ fn print_help(error: Option<String>) {
         "{}Usage:
     {}
     -s | --silent  don't display any output
-    -t TIMEOUT | --timeout TIMEOUT  in miliseconds
+    -t TIMEOUT | --timeout TIMEOUT  in milliseconds
         Wait till all links are verified
 
     wait-for-them -h | --help
