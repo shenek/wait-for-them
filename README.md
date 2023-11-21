@@ -32,7 +32,7 @@ cargo install wait-for-them
 wait-for-them host1:port1 host2:port2 http://host3:8080/
 ```
 
-### Wait with timeout (in miliseconds)
+### Wait with timeout (in milliseconds)
 ```
 wait-for-them -t 5000 host1:port1 host2:port2 http://host3:8080/
 ```
