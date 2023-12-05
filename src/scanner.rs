@@ -1,7 +1,13 @@
 #[cfg(feature = "http")]
-use hyper::{Body, Client, StatusCode};
+use bytes::Bytes;
 #[cfg(feature = "http")]
-use hyper_rustls::HttpsConnectorBuilder;
+use http_body_util::Empty;
+#[cfg(feature = "http")]
+use hyper::StatusCode;
+#[cfg(feature = "http")]
+use hyper_tls::HttpsConnector;
+#[cfg(feature = "http")]
+use hyper_util::{client::legacy::Client, rt::TokioExecutor};
 #[cfg(feature = "ui")]
 use indicatif::{MultiProgress, ProgressBar, ProgressFinish, ProgressStyle};
 #[cfg(feature = "ui")]
@@ -134,7 +140,9 @@ impl Wait {
     async fn wait_for_connection_tcp(&mut self) {
         loop {
             self.generator.generate_tick().await;
-            let ToCheck::HostnameAndPort(ref domain, port) = self.to_check else { unreachable!() };
+            let ToCheck::HostnameAndPort(ref domain, port) = self.to_check else {
+                unreachable!()
+            };
             let timeout = time::timeout(
                 Duration::from_millis(NO_RESPONSE_TIMEOUT),
                 TcpStream::connect((domain.as_str(), port)),
@@ -153,15 +161,14 @@ impl Wait {
 
     #[cfg(feature = "http")]
     async fn wait_for_connection_http(&mut self) {
-        let https_or_http = HttpsConnectorBuilder::new()
-            .with_native_roots()
-            .https_or_http()
-            .enable_http1()
-            .enable_http2()
-            .build();
+        let https_or_http = HttpsConnector::new();
 
-        let client: Client<_, Body> = Client::builder().build(https_or_http);
-        let ToCheck::HttpOrHttpsUrl(ref url) = self.to_check else { unreachable!() };
+        let client: Client<_, Empty<Bytes>> =
+            Client::builder(TokioExecutor::new()).build(https_or_http);
+
+        let ToCheck::HttpOrHttpsUrl(ref url) = self.to_check else {
+            unreachable!()
+        };
 
         loop {
             self.generator.generate_tick().await;

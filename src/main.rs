@@ -5,11 +5,17 @@ use std::{env, process::exit, time::Instant};
 use wait_for_them::wait_for_them;
 
 // For some reason these "deps" are required with `-D unused-crate-dependencies`
+#[cfg(feature = "http")]
+use bytes as _;
 use futures as _;
+#[cfg(feature = "http")]
+use http_body_util as _;
 #[cfg(feature = "http")]
 use hyper as _;
 #[cfg(feature = "http")]
-use hyper_rustls as _;
+use hyper_tls as _;
+#[cfg(feature = "http")]
+use hyper_util as _;
 #[cfg(feature = "ui")]
 use indicatif as _;
 use regex as _;
