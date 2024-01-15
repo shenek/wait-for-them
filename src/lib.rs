@@ -36,7 +36,7 @@ static DOMAIN_REGEX: &str =
 /// ```
 #[derive(Debug, PartialEq, Clone)]
 pub enum ToCheck {
-    /// Hostname or IP addess e.g. `127.0.0.1:8080` or `localhost:80`
+    /// Hostname or IP address e.g. `127.0.0.1:8080` or `localhost:80`
     HostnameAndPort(String, u16),
 
     #[cfg(feature = "http")]
@@ -131,7 +131,7 @@ impl std::str::FromStr for ToCheck {
 /// * `hosts_ports_or_http_urls` - items to be check
 /// * `timeout` - `None` means that it it may wait forever or `Some(..)` set timeout in milis
 /// * `start_time` - Optional time_tracker
-/// * `silent` - supresses output to console if true
+/// * `silent` - suppresses output to console if true
 ///
 /// # Returns
 /// `Vec` with `Option` - `Some(..)` with elapsed time in milis on success `None` otherwise.
