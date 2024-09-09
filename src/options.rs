@@ -1,6 +1,6 @@
 use wait_for_them::ToCheck;
 
-#[derive(Default)]
+#[derive(Default, PartialEq, Debug)]
 pub struct Options {
     pub to_check: Vec<ToCheck>,
     pub timeout: Option<u64>,
@@ -14,7 +14,14 @@ enum ParseState {
     Command,
 }
 
-pub fn parse(args: Vec<String>) -> Result<Options, Option<String>> {
+#[derive(PartialEq, Debug)]
+pub enum Action {
+    Help,
+    Version,
+    Failed(String),
+}
+
+pub fn parse(args: Vec<String>) -> Result<Options, Action> {
     let mut options = Options::default();
 
     let mut state = ParseState::Host;
@@ -34,26 +41,29 @@ pub fn parse(args: Vec<String>) -> Result<Options, Option<String>> {
             ParseState::Timeout => {
                 options.timeout = Some(
                     arg.parse()
-                        .map_err(|_| Some("Failed to parse timeout".to_string()))?,
+                        .map_err(|_| Action::Failed("Failed to parse timeout".to_string()))?,
                 );
                 state = ParseState::Host;
             }
             ParseState::Host => match arg.as_ref() {
                 "-t" | "--timeout" => state = ParseState::Timeout,
                 "-s" | "--silent" => options.silent = true,
-                "-h" | "--help" => return Err(None),
+                "-v" | "--version" => return Err(Action::Version),
+                "-h" | "--help" => return Err(Action::Help),
                 "--" => {
                     state = ParseState::Command;
                 }
                 _ => {
-                    options.to_check.push(arg.parse::<ToCheck>()?);
+                    options
+                        .to_check
+                        .push(arg.parse::<ToCheck>().map_err(|e| Action::Failed(e))?);
                 }
             },
         }
     }
 
     if options.to_check.is_empty() {
-        Err(Some(
+        Err(Action::Failed(
             "You need to set at least one item to verify".to_string(),
         ))
     } else {
@@ -114,6 +124,22 @@ mod tests {
 
         let options = parse(vec!["-s".into(), "www.example.com:888".into()]);
         assert!(options.unwrap().silent);
+    }
+
+    #[test]
+    fn version() {
+        assert_eq!(
+            parse(vec!["--version".into(), "www.example.com:888".into()]),
+            Err(super::Action::Version)
+        );
+    }
+
+    #[test]
+    fn help() {
+        assert_eq!(
+            parse(vec!["--help".into(), "www.example.com:888".into()]),
+            Err(super::Action::Help)
+        );
     }
 
     #[cfg(feature = "http")]

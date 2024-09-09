@@ -20,12 +20,7 @@ use hyper_util as _;
 use indicatif as _;
 use regex as _;
 
-fn print_help(error: Option<String>) {
-    let error = if let Some(err_msg) = error {
-        format!("{}\n", err_msg)
-    } else {
-        String::new()
-    };
+fn print_help(error: String) {
     let first_line = if cfg!(feature = "http") {
         "wait-for-them [-t timeout] [-s] host:port|url [host:port|url [host:port|url...]] [-- command [arg [arg...]]"
     } else {
@@ -57,9 +52,17 @@ async fn main() {
         silent,
     } = match options::parse(args) {
         Ok(options) => options,
-        Err(message) => {
+        Err(options::Action::Failed(message)) => {
             print_help(message);
             exit(999);
+        }
+        Err(options::Action::Version) => {
+            println!("wait-for-them {}", env!("CARGO_PKG_VERSION"));
+            exit(0);
+        }
+        Err(options::Action::Help) => {
+            print_help(String::new());
+            exit(0);
         }
     };
 
