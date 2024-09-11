@@ -30,11 +30,7 @@ pub fn parse(args: Vec<String>) -> Result<Options, Action> {
     for arg in args {
         match state {
             ParseState::Command => {
-                let mut command = if let Some(command) = options.command.take() {
-                    command
-                } else {
-                    vec![]
-                };
+                let mut command = options.command.take().unwrap_or_default();
                 command.push(arg);
                 options.command = Some(command);
             }
@@ -56,7 +52,7 @@ pub fn parse(args: Vec<String>) -> Result<Options, Action> {
                 _ => {
                     options
                         .to_check
-                        .push(arg.parse::<ToCheck>().map_err(|e| Action::Failed(e))?);
+                        .push(arg.parse::<ToCheck>().map_err(Action::Failed)?);
                 }
             },
         }

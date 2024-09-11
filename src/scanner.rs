@@ -225,6 +225,7 @@ impl Wait {
     }
 }
 
+#[allow(dead_code)]
 pub trait Generator {
     fn generate_tick(&mut self) -> Pin<Box<dyn Future<Output = ()>>>;
     fn generate_error(&mut self) -> Pin<Box<dyn Future<Output = ()>>>;
