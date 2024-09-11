@@ -11,5 +11,5 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@master
 
-      - name: Run docker-compose
-        run: docker-compose -f docker-compose.yml up --abort-on-container-exit
+      - name: Run docker compose
+        run: docker compose -f docker-compose.yml up --abort-on-container-exit
