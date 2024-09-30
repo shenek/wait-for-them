@@ -1,3 +1,10 @@
+0.5.0 (2024-09-30)
+------------------
+* fixed some spelling
+* added --version flag to the binary
+* switched to hyper 1.0
+* docker compose workflow updated
+
 0.4.0 (2023-02-17)
 ------------------
 
