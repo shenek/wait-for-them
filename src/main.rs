@@ -27,8 +27,8 @@ fn print_help(error: String) {
         "wait-for-them [-t timeout] [-s] host:port [host:port [host:port...]] [-- command [arg [arg...]]"
     };
     println!(
-        "{}Usage:
-    {}
+        "{error}Usage:
+    {first_line}
     -s | --silent  don't display any output
     -t TIMEOUT | --timeout TIMEOUT  in milliseconds
         Wait till all links are verified
@@ -36,7 +36,6 @@ fn print_help(error: String) {
     wait-for-them -h | --help
         Display help
 ",
-        error, first_line,
     );
 }
 
