@@ -74,7 +74,7 @@ jobs:
 
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.os }}
           path: ./dist
@@ -89,19 +89,19 @@ jobs:
         uses: actions/checkout@master
 
       - name: Download artifacts ubuntu
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: ubuntu-latest
           path: dist
 
       - name: Download artifacts windows
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: windows-latest
           path: dist
 
       - name: Download artifacts macos
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: macos-latest
           path: dist
