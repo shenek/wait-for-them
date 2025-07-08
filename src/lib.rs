@@ -49,7 +49,7 @@ impl std::fmt::Display for ToCheck {
     #[cfg(feature = "http")]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::HostnameAndPort(domain, port) => format!("{}:{}", domain, port).fmt(f),
+            Self::HostnameAndPort(domain, port) => format!("{domain}:{port}").fmt(f),
             Self::HttpOrHttpsUrl(uri) => uri.fmt(f),
         }
     }
@@ -67,15 +67,14 @@ impl ToCheck {
         let parts: Vec<String> = domain_and_port.split(':').map(String::from).collect();
         if parts.len() != 2 {
             return Err(format!(
-                "'{}' doesn't match <hostname>:<port> pattern",
-                domain_and_port
+                "'{domain_and_port}' doesn't match <hostname>:<port> pattern"
             ));
         }
 
         // check port
         let port: u16 = parts[1]
             .parse()
-            .map_err(|err| format!("'{}', port error: {}", domain_and_port, err))?;
+            .map_err(|err| format!("'{domain_and_port}', port error: {err}"))?;
 
         if port == 0 {
             return Err("dynamic port number (0) can't be used here".into());
@@ -87,7 +86,7 @@ impl ToCheck {
         let ip: Result<std::net::IpAddr, _> = hostname.parse();
 
         if !regex.is_match(&hostname) && ip.is_err() {
-            return Err(format!("'{}' is not a valid hostname", hostname));
+            return Err(format!("'{hostname}' is not a valid hostname"));
         }
         Ok(Self::HostnameAndPort(hostname, port))
     }
